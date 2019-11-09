@@ -1,8 +1,12 @@
 package com.idan.md5Decoder.api;
 
 import com.idan.md5Decoder.beans.DecodeRequest;
+import com.idan.md5Decoder.beans.DecodedHash;
+import com.idan.md5Decoder.controler.MasterController;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,12 +16,15 @@ import org.springframework.web.client.RestTemplate;
 @RestController
 public class MasterApi {
 
+    @Autowired
+    private MasterController controller;
+
     @RequestMapping(method = RequestMethod.GET)
     public void startDecoding() throws InterruptedException {
         System.out.println("sending first");
         RestTemplate rt = new RestTemplate();
         String uri = "http://localhost:8989";
-        DecodeRequest dr = new DecodeRequest(0, 10000000, "416234cf338a2303542d639bbfe7930e");
+        DecodeRequest dr = new DecodeRequest(0, 100000, "416234cf338a2303542d639bbfe7930e");
         HttpEntity<DecodeRequest> request = new HttpEntity<>(dr);
         ResponseEntity<DecodeRequest> returnReq = rt.postForEntity(uri, request, DecodeRequest.class);
         Thread.sleep(5000);
@@ -25,5 +32,20 @@ public class MasterApi {
         DecodeRequest dr1 = new DecodeRequest(10, 10000000, "416234cf338a2303542d639bbfe7930e");
         request = new HttpEntity<>(dr1);
         returnReq = rt.postForEntity(uri, request, DecodeRequest.class);
+    }
+
+    @RequestMapping(value = "/registerMinionServer", method = RequestMethod.POST)
+    public void registerMinionServer(@RequestBody String minionUri) {
+        this.controller.registerMinionServer(minionUri);
+    }
+
+    @RequestMapping(value = "/decodeHash", method = RequestMethod.POST)
+    public void decodeHash(@RequestBody String hashToDecode) {
+        this.controller.decodeHash(hashToDecode);
+    }
+
+    @RequestMapping(value = "/getResult", method = RequestMethod.POST)
+    public void getResult(@RequestBody DecodedHash decodedHash) {
+        this.controller.getResult(decodedHash);
     }
 }

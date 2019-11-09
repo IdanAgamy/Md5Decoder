@@ -1,35 +1,52 @@
 package com.idan.md5Decoder;
 
+import com.idan.md5Decoder.threads.IsAliveTask;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import javax.xml.bind.DatatypeConverter;
-import java.security.MessageDigest;
+import javax.annotation.PostConstruct;
 import java.security.NoSuchAlgorithmException;
+import java.util.Timer;
 
 @SpringBootApplication
 public class Md5DecoderApplication {
 
+	@Autowired
+	private IsAliveTask task;
+
 	public static void main(String[] args) throws NoSuchAlgorithmException {
 		SpringApplication.run(Md5DecoderApplication.class, args);
-//		String hash = "35454B055CC325EA1AF2126E27707052";
-//		String password = "ILoveJava";
-//
-//		MessageDigest md = MessageDigest.getInstance("MD5");
-//		md.update(password.getBytes());
-//		byte[] digest = md.digest();
-//		String myHash = DatatypeConverter
-//				.printHexBinary(digest).toUpperCase();
-//		System.out.println(myHash);
-//		System.out.println(hash);
+//		Set<String> minions = new HashSet<>();
+//		minions.add("a");
+//		minions.add("b");
+//		minions.add("asd");
+//		minions.add("qwe");
+//		minions.add("asf");
+//		minions.add("qwae");
+//		int rangestart = 0;
+//		int rangeend = 100000000;
+//		int numOfMinions = minions.size();
+//		int searchRangeSize = ( rangeend -  rangestart) / numOfMinions;
+//		int modulus = (rangeend -  rangestart) % searchRangeSize;
+//		int rangeStart = rangestart;
+//		int rangeEnd = searchRangeSize - 1;
+//		for(String minion:minions){
+//			if (modulus > 0){
+//				rangeEnd += 1;
+//				modulus -= 1;
+//			}
+//			System.out.println( rangeStart+"-"+ rangeEnd);
+//			rangeStart = rangeEnd + 1;
+//			rangeEnd += searchRangeSize;
+//		}
 
 	}
 
-	public static String returnMD5Hash(String str) throws NoSuchAlgorithmException {
-		MessageDigest md = MessageDigest.getInstance("MD5");
-		md.update(str.getBytes());
-		byte[] digest = md.digest();
-		return DatatypeConverter.printHexBinary(digest).toUpperCase();
+	@PostConstruct
+	public void startThread() {
+		Timer timer = new Timer();
+		timer.schedule(task, 1000, 10 * 1000);
 	}
 
 }
