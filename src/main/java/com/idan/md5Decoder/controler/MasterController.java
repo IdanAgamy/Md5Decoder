@@ -1,7 +1,6 @@
 package com.idan.md5Decoder.controler;
 
-import com.idan.md5Decoder.beans.DecodeRequest;
-import com.idan.md5Decoder.beans.DecodedHash;
+import com.idan.md5Decoder.exceptions.ApplicationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +10,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Controller
 public class MasterController {
@@ -64,29 +64,61 @@ public class MasterController {
         String uri = "http://" + minionUri + "/updateRange";
         int[] range = {rangeStart, rangeEnd};
         HttpEntity<int[]> request = new HttpEntity<>(range);
-        ResponseEntity<DecodeRequest> returnReq = rt.postForEntity(uri, request, DecodeRequest.class);
+        ResponseEntity<int[]> returnReq = rt.postForEntity(uri, request, int[].class);
     }
 
-    public void decodeHash(String hashToDecode) {
+    public void decodeHash(String hashToDecode) throws ApplicationException {
+        validateHash(hashToDecode);
         if (minions.isEmpty()) {
-            System.out.println("no minion to do decoding");
+            System.out.println("no minion to do decoding, can't decode");
             return;
         }
         for (String minion : minions) {
-            sendDecodeRequestToMinion(minion, 0, 1000000000, hashToDecode);
+            sendDecodeRequestToMinion(minion, hashToDecode);
+        }
+        System.out.println("Hash :" + hashToDecode + "was sent to " + minions.size() + " minions");
+    }
+
+    private void validateHash(String hash) throws ApplicationException {
+        if (hash.length() != 32) {
+            throw new ApplicationException("The hash is not 32 char long or the password is not 10 char long");
+        }
+        if (!Pattern.compile("^[0-9A-F]+$").matcher(hash).matches()) {
+            throw new ApplicationException("the hash is not in hex");
         }
     }
 
-    private void sendDecodeRequestToMinion(String minionUri, int startNumber, int endNumber, String hashToDecode) {
+    private void sendDecodeRequestToMinion(String minionUri, String hashToDecode) {
         RestTemplate rt = new RestTemplate();
         String uri = "http://" + minionUri + "/decodeRequest";
         HttpEntity<String> request = new HttpEntity<>(hashToDecode);
-        ResponseEntity<DecodeRequest> returnReq = rt.postForEntity(uri, request, DecodeRequest.class);
+        ResponseEntity<String> returnReq = rt.postForEntity(uri, request, String.class);
     }
 
-    public void getResult(DecodedHash decodedHash) {
-        System.out.println("password for hash " + decodedHash.getDecodedHash() + " is " + decodedHash.getDecodedPassword());
-        this.removeHashToDecode(decodedHash.getDecodedHash());
+    public void getResult(String[] decodingResults) throws ApplicationException {
+        validatingHashDecodeResults(decodingResults);
+        String decodedHash = decodingResults[0];
+        String decodedPassword = decodingResults[1];
+        System.out.println("password for hash " + decodedHash + " is " + decodedPassword);
+        this.removeHashToDecode(decodedHash);
+    }
+
+    private void validatingHashDecodeResults(String[] decodingResults) throws ApplicationException {
+        if (decodingResults.length != 2) {
+            throw new ApplicationException("Wrong size of array string, invalid results");
+        }
+        String hash = decodingResults[0];
+        String password = decodingResults[1];
+        validateHash(hash);
+        if (password.length() != 10) {
+            throw new ApplicationException("The password is not 10 char long");
+        }
+        if (!Pattern.compile("^[0-9]+$").matcher(password).matches()) {
+            throw new ApplicationException("the password is not all number");
+        }
+        if (password.startsWith("05")) {
+            throw new ApplicationException("the password is not in the correct format '05XXXXXXXX'");
+        }
     }
 
     private void removeHashToDecode(String hashToRemove) {
@@ -98,12 +130,13 @@ public class MasterController {
         for (String minionUri : minions) {
             String uri = "http://" + minionUri + "/removeHash";
             HttpEntity<String> request = new HttpEntity<>(hashToRemove);
-            ResponseEntity<DecodeRequest> returnReq = rt.postForEntity(uri, request, DecodeRequest.class);
+            ResponseEntity<String> returnReq = rt.postForEntity(uri, request, String.class);
         }
     }
 
     public void isAlive() {
         synchronized (this.minions) {
+            boolean isAllAlive = true;
             if (minions.isEmpty()) {
                 System.out.println("no minion to do monitor");
                 return;
@@ -113,11 +146,18 @@ public class MasterController {
                 String uri = "http://" + minionUri + "/";
                 try {
                     ResponseEntity<String> returnReq = rt.getForEntity(uri, String.class);
+                    System.out.println("minion " + minionUri + " is alive");
                 } catch (RestClientException e) {
                     System.out.println("minion " + minionUri + " is not responding, removing from list.");
                     removeMinion(minionUri);
+                    isAllAlive = false;
                 }
             }
+            if (isAllAlive) {
+                System.out.println("All minions responded");
+                return;
+            }
+            System.out.println("Minions removed from list");
         }
     }
 
