@@ -81,10 +81,10 @@ public class MasterController {
 
     private void validateHash(String hash) throws ApplicationException {
         if (hash.length() != 32) {
-            throw new ApplicationException("The hash is not 32 char long or the password is not 10 char long");
+            throw new ApplicationException("The hash is not 32 char long or the password is not 10 char long " + hash + ").");
         }
-        if (!Pattern.compile("^[0-9A-F]+$").matcher(hash).matches()) {
-            throw new ApplicationException("the hash is not in hex");
+        if (!Pattern.compile("^[0-9A-Fa-f]+$").matcher(hash).matches()) {
+            throw new ApplicationException("the hash is not in hex " + hash + ").");
         }
     }
 
@@ -111,13 +111,13 @@ public class MasterController {
         String password = decodingResults[1];
         validateHash(hash);
         if (password.length() != 10) {
-            throw new ApplicationException("The password is not 10 char long");
+            throw new ApplicationException("The password is not 10 char long (" + password + ").");
         }
         if (!Pattern.compile("^[0-9]+$").matcher(password).matches()) {
-            throw new ApplicationException("the password is not all number");
+            throw new ApplicationException("the password is not all number (" + password + ").");
         }
-        if (password.startsWith("05")) {
-            throw new ApplicationException("the password is not in the correct format '05XXXXXXXX'");
+        if (!password.startsWith("05")) {
+            throw new ApplicationException("the password is not in the correct format '05XXXXXXXX' (" + password + ").");
         }
     }
 
