@@ -1,6 +1,5 @@
-package com.idan.md5Decoder.Md5Decoder;
+package com.idan.md5Decoder;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import javax.xml.bind.DatatypeConverter;
