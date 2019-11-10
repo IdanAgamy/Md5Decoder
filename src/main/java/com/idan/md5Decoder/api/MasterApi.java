@@ -22,7 +22,12 @@ public class MasterApi {
 
     @RequestMapping(value = "/decodeHash", method = RequestMethod.POST)
     public void decodeHash(@RequestBody String hashToDecode) throws ApplicationException {
-        this.controller.decodeHash(hashToDecode);
+        String[] hashes = hashToDecode.split("\\n");
+        if (hashes.length == 1) {
+            this.controller.decodeHash(hashToDecode);
+            return;
+        }
+        this.controller.decodeHash(hashes);
     }
 
     @RequestMapping(value = "/getResult", method = RequestMethod.POST)

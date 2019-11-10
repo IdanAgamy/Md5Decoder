@@ -2,9 +2,9 @@ package com.idan.md5Decoder.enums;
 
 public enum ErrorType {
     INCORRECT_VALIDATION(601),
-    NO_MINIONS(602),
-    MINION_ALREADY_REGISTERED(603),
-    HTTP_REQUEST_ERROR(604);
+    HTTP_REQUEST_ERROR(602),
+    NO_MINIONS(603),
+    MINION_ALREADY_REGISTERED(604);
 
     private int number;
 

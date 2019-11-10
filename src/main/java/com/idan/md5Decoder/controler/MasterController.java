@@ -2,6 +2,8 @@ package com.idan.md5Decoder.controler;
 
 import com.idan.md5Decoder.enums.ErrorType;
 import com.idan.md5Decoder.exceptions.ApplicationException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.regex.Pattern;
 public class MasterController {
 
     private final Set<String> minions;
+    private static final Logger logger = LogManager.getLogger(MasterController.class);
 
     @Value("${master.rangeStart}")
     private int rangeStart;
@@ -32,7 +35,7 @@ public class MasterController {
             throw new ApplicationException("minion already registered", ErrorType.MINION_ALREADY_REGISTERED);
         }
         minions.add(minionUri);
-        System.out.println("added " + minionUri + " to minions");
+        logger.info("added " + minionUri + " to minions");
         updateMinionsSearchRange();
     }
 
@@ -71,6 +74,18 @@ public class MasterController {
         }
     }
 
+    public void decodeHash(String[] hashes) throws ApplicationException {
+        for (String hash : hashes) {
+            validateHash(hash);
+        }
+        for (String minion : minions) {
+            sendDecodeRequestToMinion(minion, hashes);
+        }
+        for (String hash : hashes) {
+            logger.info("Hash :" + hash + "was sent to " + minions.size() + " minions");
+        }
+    }
+
     public void decodeHash(String hashToDecode) throws ApplicationException {
         validateHash(hashToDecode);
         if (minions.isEmpty()) {
@@ -79,7 +94,7 @@ public class MasterController {
         for (String minion : minions) {
             sendDecodeRequestToMinion(minion, hashToDecode);
         }
-        System.out.println("Hash :" + hashToDecode + "was sent to " + minions.size() + " minions");
+        logger.info("Hash :" + hashToDecode + "was sent to " + minions.size() + " minions");
     }
 
     private void sendDecodeRequestToMinion(String minionUri, String hashToDecode) throws ApplicationException {
@@ -94,11 +109,23 @@ public class MasterController {
         }
     }
 
+    private void sendDecodeRequestToMinion(String minionUri, String[] hashesToDecode) throws ApplicationException {
+        RestTemplate rt = new RestTemplate();
+        String uri = "http://" + minionUri + "/multipleDecodeRequest";
+        HttpEntity<String[]> request = new HttpEntity<>(hashesToDecode);
+        try {
+            ResponseEntity<String[]> returnReq = rt.postForEntity(uri, request, String[].class);
+        } catch (RestClientException e) {
+            e.printStackTrace();
+            throw new ApplicationException("Could not send hash to decode for minion: " + minionUri, e, ErrorType.HTTP_REQUEST_ERROR);
+        }
+    }
+
     public void getResult(String[] decodingResults) throws ApplicationException {
         validatingHashDecodeResults(decodingResults);
         String decodedHash = decodingResults[0];
         String decodedPassword = decodingResults[1];
-        System.out.println("password for hash " + decodedHash + " is " + decodedPassword);
+        logger.info("password for hash " + decodedHash + " is " + decodedPassword);
         this.removeHashToDecode(decodedHash);
     }
 
@@ -148,18 +175,18 @@ public class MasterController {
                 String uri = "http://" + minionUri + "/";
                 try {
                     ResponseEntity<String> returnReq = rt.getForEntity(uri, String.class);
-                    System.out.println("minion " + minionUri + " is alive");
+                    logger.debug("minion " + minionUri + " is alive");
                 } catch (RestClientException e) {
-                    System.out.println("minion " + minionUri + " is not responding, removing from list.");
+                    logger.warn("minion " + minionUri + " is not responding, removing from list.");
                     removeMinion(minionUri);
                     isAllAlive = false;
                 }
             }
             if (isAllAlive) {
-                System.out.println("All minions responded");
+                logger.debug("All minions responded");
                 return;
             }
-            System.out.println("Minions removed from list");
+            logger.warn("Minions removed from list");
         }
     }
 
