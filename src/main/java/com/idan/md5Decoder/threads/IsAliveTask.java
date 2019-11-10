@@ -3,7 +3,6 @@ package com.idan.md5Decoder.threads;
 import com.idan.md5Decoder.controler.MasterController;
 import com.idan.md5Decoder.enums.ErrorType;
 import com.idan.md5Decoder.exceptions.ApplicationException;
-import com.idan.md5Decoder.exceptions.ExceptionsHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,7 @@ import java.util.TimerTask;
 @Component
 public class IsAliveTask extends TimerTask {
 
-    private static final Logger logger = LogManager.getLogger(ExceptionsHandler.class);
+    private static final Logger logger = LogManager.getLogger(IsAliveTask.class);
 
     @Autowired
     private MasterController controller;

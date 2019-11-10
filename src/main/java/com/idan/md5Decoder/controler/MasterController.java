@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 public class MasterController {
 
     private final Set<String> minions;
+    private final Set<String> hashes;
     private static final Logger logger = LogManager.getLogger(MasterController.class);
 
     @Value("${master.rangeStart}")
@@ -28,6 +29,7 @@ public class MasterController {
 
     public MasterController() {
         this.minions = new HashSet<>();
+        this.hashes = new HashSet<>();
     }
 
     public void registerMinionServer(String minionUri) throws ApplicationException {
@@ -35,6 +37,7 @@ public class MasterController {
             throw new ApplicationException("minion already registered", ErrorType.MINION_ALREADY_REGISTERED);
         }
         minions.add(minionUri);
+        sendDecodeRequestToMinion(minionUri, this.hashes.toArray(new String[0]));
         logger.info("added " + minionUri + " to minions");
         updateMinionsSearchRange();
     }
@@ -77,6 +80,9 @@ public class MasterController {
     public void decodeHash(String[] hashes) throws ApplicationException {
         for (String hash : hashes) {
             validateHash(hash);
+        }
+        for (String hash : hashes) {
+            this.hashes.add(hash);
         }
         for (String minion : minions) {
             sendDecodeRequestToMinion(minion, hashes);
@@ -157,11 +163,13 @@ public class MasterController {
             HttpEntity<String> request = new HttpEntity<>(hashToRemove);
             try {
                 ResponseEntity<String> returnReq = rt.postForEntity(uri, request, String.class);
+                this.hashes.remove(hashToRemove);
             } catch (RestClientException e) {
                 e.printStackTrace();
                 throw new ApplicationException("could not remove hash: " + hashToRemove + " for server: " + minionUri, e, ErrorType.HTTP_REQUEST_ERROR);
             }
         }
+
     }
 
     public void isAlive() throws ApplicationException {
